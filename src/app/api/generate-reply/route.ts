@@ -43,6 +43,7 @@ ${
 }${customInstructions}`;
 
     const models = [
+      "gemini-3.8-flash", // Re-adding 3.8-flash as the primary since it's the only one supported by your API key!
       "gemini-2.5-flash",
       "gemini-2.0-flash",
       "gemini-1.5-flash",
@@ -55,8 +56,8 @@ ${
     for (const model of models) {
       try {
         let success = false;
-        // Attempt up to 2 times for this model (1 initial + 1 retry)
-        for (let attempt = 1; attempt <= 2; attempt++) {
+        // Attempt up to 5 times for this model to push through 503 high demand errors
+        for (let attempt = 1; attempt <= 5; attempt++) {
           try {
             console.log(`Calling Gemini API (model: ${model}, attempt: ${attempt})...`);
             const response = await ai.models.generateContent({
@@ -71,9 +72,10 @@ ${
             const status = error?.status || error?.response?.status || (error.message?.includes('503') ? 503 : (error.message?.includes('429') ? 429 : 500));
             
             // If it's a retriable error and we haven't exhausted attempts for this model
-            if ((status === 503 || status === 429 || status === 'UNAVAILABLE') && attempt < 2) {
-              console.warn(`Model ${model} attempt ${attempt} returned ${status}, retrying in 1000ms...`);
-              await delay(1000);
+            if ((status === 503 || status === 429 || status === 'UNAVAILABLE') && attempt < 5) {
+              const waitTime = attempt * 1000; // 1s, 2s, 3s, 4s backoff
+              console.warn(`Model ${model} attempt ${attempt} returned ${status}, retrying in ${waitTime}ms...`);
+              await delay(waitTime);
             } else {
               // Not retriable or exhausted attempts, break attempt loop to fall back to next model
               console.warn(`Model ${model} failed:`, error.message);
@@ -91,8 +93,10 @@ ${
       }
     }
 
-    console.error('All models in the cascade failed.');
-    return NextResponse.json({ error: "AI service is currently busy across all models. Please try again later." }, { status: 503 });
+    console.error('All models in the cascade failed. Last error:', lastError?.message);
+    return NextResponse.json({ 
+      error: `AI service failed. Last error: ${lastError?.message || 'Unknown error'}` 
+    }, { status: 503 });
   } catch (error: any) {
     console.error('Error in /api/generate-reply:', error);
     return NextResponse.json({ error: error.message || 'Failed to generate reply' }, { status: 500 });
