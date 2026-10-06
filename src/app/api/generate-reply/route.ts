@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { GoogleGenAI } from '@google/genai';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
@@ -11,7 +12,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log('Request body:', body);
     
-    const { reviewId, authorName, rating, comment } = body;
+    const { authorName, rating, comment } = body;
 
     if (!process.env.AI_API_KEY) {
       console.error('Error: AI_API_KEY missing');
