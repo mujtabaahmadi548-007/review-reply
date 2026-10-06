@@ -52,7 +52,7 @@ export function NewReviewForm() {
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white font-medium rounded-md hover:bg-slate-800 transition-colors text-sm shadow-sm"
+        className="w-full sm:w-auto flex justify-center items-center gap-2 px-4 py-2 bg-slate-900 text-white font-medium rounded-md hover:bg-slate-800 transition-colors text-sm shadow-sm"
       >
         <Plus size={16} />
         New Review
@@ -69,8 +69,8 @@ export function NewReviewForm() {
       {/* Modal Overlay */}
       {isOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-40">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
-            <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in zoom-in-95 mx-auto">
+            <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
               <h2 className="font-semibold text-lg text-slate-900">Simulate New Review</h2>
               <button 
                 onClick={() => setIsOpen(false)}

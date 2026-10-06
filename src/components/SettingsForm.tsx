@@ -102,7 +102,7 @@ export function SettingsForm({ initialSettings }: { initialSettings: Settings | 
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-2">Tone Preset</label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {['Professional', 'Friendly & Warm', 'Concise & Direct', 'Casual'].map((tone) => (
             <label key={tone} className={`
               flex items-center p-3 border rounded-md cursor-pointer transition-colors

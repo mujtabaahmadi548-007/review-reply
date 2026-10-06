@@ -92,8 +92,8 @@ export function ReviewCard({ review, existingResponse }: ReviewCardProps) {
     : 'bg-green-100 text-green-800 border-green-200';
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 flex flex-col gap-4">
-      <div className="flex justify-between items-start">
+    <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-slate-200 flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-4">
         <div>
           <h3 className="font-semibold text-lg text-slate-900">{review.author_name}</h3>
           <div className="flex gap-1 mt-1">
@@ -106,7 +106,7 @@ export function ReviewCard({ review, existingResponse }: ReviewCardProps) {
             ))}
           </div>
         </div>
-        <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${badgeColor}`}>
+        <span className={`px-2.5 py-1 text-xs font-medium rounded-full border self-start ${badgeColor}`}>
           {status}
         </span>
       </div>
