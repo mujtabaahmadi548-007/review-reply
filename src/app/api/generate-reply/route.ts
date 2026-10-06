@@ -42,46 +42,57 @@ ${
   : `- Sincerely apologize on behalf of ${businessName} without admitting legal liability, acknowledge their frustration, invite them to contact ${supportEmail} to resolve the issue directly, and keep it under 75 words.`
 }${customInstructions}`;
 
-    const generateWithRetry = async (model: string, maxRetries: number) => {
-      let attempts = 0;
-      while (attempts <= maxRetries) {
-        try {
-          console.log(`Calling Gemini API (model: ${model}, attempt: ${attempts + 1})...`);
-          const response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-          });
-          return response.text || '';
-        } catch (error: any) {
-          const status = error?.status || error?.response?.status || (error.message?.includes('503') ? 503 : (error.message?.includes('429') ? 429 : 500));
-          if ((status === 503 || status === 429 || status === 'UNAVAILABLE') && attempts < maxRetries) {
-            const waitTime = (attempts + 1) * 1000;
-            console.warn(`Encountered ${status} error, retrying in ${waitTime}ms...`);
-            await delay(waitTime);
-            attempts++;
-          } else {
-            throw error;
-          }
-        }
-      }
-      throw new Error('Max retries reached');
-    };
+    const models = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-2.0-flash-lite"
+    ];
 
     let reply = '';
-    try {
-      reply = await generateWithRetry('gemini-3.8-flash', 3);
-    } catch (primaryError: any) {
-      console.warn('Primary model failed, falling back to gemini-2.0-flash...', primaryError.message);
+    let lastError: any = null;
+
+    for (const model of models) {
       try {
-        reply = await generateWithRetry('gemini-2.0-flash', 0);
-      } catch (fallbackError: any) {
-        console.error('Fallback model also failed:', fallbackError.message);
-        return NextResponse.json({ error: "AI service is busy right now. Please try again in a few seconds." }, { status: 503 });
+        let success = false;
+        // Attempt up to 2 times for this model (1 initial + 1 retry)
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            console.log(`Calling Gemini API (model: ${model}, attempt: ${attempt})...`);
+            const response = await ai.models.generateContent({
+              model,
+              contents: prompt,
+            });
+            reply = response.text || '';
+            success = true;
+            break; // Break the attempt loop on success
+          } catch (error: any) {
+            lastError = error;
+            const status = error?.status || error?.response?.status || (error.message?.includes('503') ? 503 : (error.message?.includes('429') ? 429 : 500));
+            
+            // If it's a retriable error and we haven't exhausted attempts for this model
+            if ((status === 503 || status === 429 || status === 'UNAVAILABLE') && attempt < 2) {
+              console.warn(`Model ${model} attempt ${attempt} returned ${status}, retrying in 1000ms...`);
+              await delay(1000);
+            } else {
+              // Not retriable or exhausted attempts, break attempt loop to fall back to next model
+              console.warn(`Model ${model} failed:`, error.message);
+              break; 
+            }
+          }
+        }
+        
+        if (success) {
+          console.log(`Generated reply successfully using ${model}`);
+          return NextResponse.json({ reply: reply.trim() });
+        }
+      } catch (e: any) {
+        lastError = e;
       }
     }
 
-    console.log('Generated reply successfully');
-    return NextResponse.json({ reply: reply.trim() });
+    console.error('All models in the cascade failed.');
+    return NextResponse.json({ error: "AI service is currently busy across all models. Please try again later." }, { status: 503 });
   } catch (error: any) {
     console.error('Error in /api/generate-reply:', error);
     return NextResponse.json({ error: error.message || 'Failed to generate reply' }, { status: 500 });

@@ -29,33 +29,42 @@ export function ReviewCard({ review, existingResponse }: ReviewCardProps) {
   const handleDraftReply = async () => {
     setIsDrafting(true);
     setErrorMsg(null);
-    try {
-      const res = await fetch('/api/generate-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reviewId: review.id,
-          authorName: review.author_name,
-          rating: review.rating,
-          comment: review.comment,
-        }),
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || `Server error: ${res.status}`);
+
+    const attemptFetch = async (retryCount = 1): Promise<void> => {
+      try {
+        const res = await fetch('/api/generate-reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reviewId: review.id,
+            authorName: review.author_name,
+            rating: review.rating,
+            comment: review.comment,
+          }),
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || `Server error: ${res.status}`);
+        }
+        
+        if (data.reply) {
+          setDraft(data.reply);
+        }
+      } catch (error: any) {
+        if (retryCount > 0) {
+          console.warn('Draft failed, retrying in background...', error);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return attemptFetch(retryCount - 1);
+        }
+        console.error('Failed to draft reply:', error);
+        setErrorMsg(error.message || 'An unexpected error occurred while drafting the reply.');
       }
-      
-      if (data.reply) {
-        setDraft(data.reply);
-      }
-    } catch (error: any) {
-      console.error('Failed to draft reply:', error);
-      setErrorMsg(error.message || 'An unexpected error occurred while drafting the reply.');
-    } finally {
-      setIsDrafting(false);
-    }
+    };
+
+    await attemptFetch();
+    setIsDrafting(false);
   };
 
   const handlePublish = async () => {
